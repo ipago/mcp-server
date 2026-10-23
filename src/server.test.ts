@@ -8,7 +8,7 @@ import type { KeyMode } from "./keys.js";
 function fakeDocs() {
   return {
     pages: vi.fn(async () => [
-      { url: "https://docs.2pay.gg/dev/checkout", title: "Checkout", body: "Create a checkout session." },
+      { url: "https://docs.2pay.gg/dev/checkout/overview", title: "Checkout", body: "Create a checkout session." },
     ]),
     page: vi.fn(async (slug: string) => `# page ${slug}`),
   };
@@ -114,14 +114,14 @@ describe("buildMcpServer", () => {
     const r = await client.callTool({ name: "get_doc_page", arguments: { slug: "../x" } });
     expect(r.isError).toBe(true);
     expect(docs.page).not.toHaveBeenCalled();
-    const ok = await client.callTool({ name: "get_doc_page", arguments: { slug: "dev/checkout" } });
-    expect(text(ok)).toContain("# page dev/checkout");
+    const ok = await client.callTool({ name: "get_doc_page", arguments: { slug: "dev/checkout/overview" } });
+    expect(text(ok)).toContain("# page dev/checkout/overview");
   });
 
   it("searches docs", async () => {
     const { client } = await connect({});
     const r = await client.callTool({ name: "search_docs", arguments: { query: "checkout" } });
-    expect(text(r)).toContain("https://docs.2pay.gg/dev/checkout");
+    expect(text(r)).toContain("https://docs.2pay.gg/dev/checkout/overview");
   });
 
   it("sends an Idempotency-Key with create_checkout", async () => {
@@ -144,6 +144,31 @@ describe("buildMcpServer", () => {
     expect(api.orders.list).toHaveBeenCalledWith({ status: "paid", limit: 5, starting_after: "ord_9" });
     const bad = await client.callTool({ name: "list_orders", arguments: { limit: 500 } });
     expect(bad.isError).toBe(true);
+  });
+
+  it("rejects id inputs that are not plain ids, without calling the api", async () => {
+    const api = fakeApi();
+    const { client } = await connect({ api, mode: "test" });
+    const r = await client.callTool({ name: "get_product", arguments: { id: "../orders" } });
+    expect(r.isError).toBe(true);
+    expect(api.products.retrieve).not.toHaveBeenCalled();
+    for (const [name, args] of [
+      ["get_order", { id: "ord_1/../../balance" }],
+      ["send_test_event", { endpoint_id: "we_1?x=1" }],
+      ["create_refund", { order: "../ord_1" }],
+      ["list_orders", { starting_after: "a/b" }],
+      ["create_checkout", { items: [{ product: "../x" }] }],
+      ["get_event", { id: "e".repeat(101) }],
+    ] as const) {
+      expect((await client.callTool({ name, arguments: args })).isError, name).toBe(true);
+    }
+    expect(api.orders.retrieve).not.toHaveBeenCalled();
+    expect(api.events.sendTest).not.toHaveBeenCalled();
+    expect(api.refunds.create).not.toHaveBeenCalled();
+    expect(api.orders.list).not.toHaveBeenCalled();
+    expect(api.checkouts.create).not.toHaveBeenCalled();
+    expect(api.events.retrieve).not.toHaveBeenCalled();
+    expect(text(await client.callTool({ name: "get_product", arguments: { id: "prod_01J9ZX" } }))).toContain("prod_01J9ZX");
   });
 
   it("creates refunds with an idempotency key and webhooks via the sdk", async () => {

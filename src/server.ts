@@ -31,10 +31,19 @@ function describeError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/**
+ * An object id such as prod_01J...: letters, digits and underscores only. Ids are interpolated
+ * into API paths, so this keeps an input like ../orders from reaching another route.
+ */
+const objectId = () => z.string().min(1).max(100).regex(/^[A-Za-z0-9_]+$/, "Must be an id made of letters, digits and _");
+
 const listShape = {
   limit: z.number().int().min(1).max(100).optional().describe("Page size, 1 to 100"),
-  starting_after: z.string().optional().describe("Cursor: id of the last object of the previous page"),
+  starting_after: objectId().optional().describe("Cursor: id of the last object of the previous page"),
 };
+
+const SLUG_HELP =
+  "the path of a search_docs result URL after the domain, e.g. https://docs.2pay.gg/dev/checkout/overview gives dev/checkout/overview";
 
 export function buildMcpServer(ctx: McpContext): McpServer {
   const server = new McpServer({ name: "2pay", version: "0.1.0" });
@@ -57,11 +66,11 @@ export function buildMcpServer(ctx: McpContext): McpServer {
   server.registerTool(
     "get_doc_page",
     {
-      description: "Returns the full markdown of one 2Pay documentation page, given a slug such as dev/checkout.",
-      inputSchema: { slug: z.string().describe("Doc page slug, for example dev/checkout") },
+      description: `Returns the full markdown of one 2Pay documentation page. The slug is ${SLUG_HELP}.`,
+      inputSchema: { slug: z.string().describe(`Doc page slug: ${SLUG_HELP}`) },
     },
     async ({ slug }) => {
-      if (!isSafeDocSlug(slug)) return fail("Unsafe doc slug: use a slug under dev/ or creators/, like dev/checkout.");
+      if (!isSafeDocSlug(slug)) return fail("Unsafe doc slug: use a slug under dev/ or creators/, like dev/checkout/overview.");
       try {
         return { content: [{ type: "text", text: await ctx.docs.page(slug) }] };
       } catch (err) {
@@ -90,13 +99,13 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     server.registerTool(name, { description, inputSchema: shape }, handler as never);
   }
 
-  const id = (what: string) => ({ id: z.string().min(1).describe(`${what} id`) });
+  const id = (what: string) => ({ id: objectId().describe(`${what} id`) });
   const status = z.string().optional().describe("Filter by status");
 
   apiTool("list_products", "Returns a page of the store's products with prices.", {
     ...listShape,
     active: z.enum(["true", "false"]).optional().describe("Filter by active flag"),
-    category: z.string().optional().describe("Filter by category id"),
+    category: objectId().optional().describe("Filter by category id"),
   }, (a) => api.products.list(a));
   apiTool("get_product", "Returns one product by id.", id("Product"), (a) => api.products.retrieve(a.id));
 
@@ -105,7 +114,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     "Creates a checkout session for the given products and returns it, including the hosted payment URL.",
     {
       items: z
-        .array(z.object({ product: z.string().min(1), quantity: z.number().int().min(1).optional() }))
+        .array(z.object({ product: objectId().describe("Product id"), quantity: z.number().int().min(1).optional() }))
         .min(1)
         .describe("Products to buy"),
       customer_email: z.string().email().optional(),
@@ -132,7 +141,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
   apiTool(
     "send_test_event",
     "Sends a test event to a webhook endpoint and returns the delivery result.",
-    { endpoint_id: z.string().min(1).describe("Webhook endpoint id") },
+    { endpoint_id: objectId().describe("Webhook endpoint id") },
     (a) => api.events.sendTest(a.endpoint_id),
   );
   apiTool("list_refunds", "Returns a page of refunds.", { ...listShape, status }, (a) => api.refunds.list(a));
@@ -143,7 +152,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     apiTool(
       "create_refund",
       "Refunds an order (test mode only) and returns the refund.",
-      { order: z.string().min(1).describe("Order id"), reason: z.string().optional() },
+      { order: objectId().describe("Order id"), reason: z.string().optional() },
       (a) => api.refunds.create(a, { idempotencyKey: randomUUID() }),
     );
   }
