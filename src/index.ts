@@ -11,6 +11,10 @@ const server = createServer(
   createHttpHandler({ docs: createDocsSource({ docsUrl }), apiUrl, allowLive }),
 );
 
+// Bound slow clients: a whole request must arrive within 30s, its headers within 15s.
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+
 server.listen(port, () => {
   console.log(`2pay mcp listening on :${port} (api ${apiUrl}, docs ${docsUrl}, live keys ${allowLive ? "allowed" : "refused"})`);
 });
