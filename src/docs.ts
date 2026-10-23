@@ -99,13 +99,26 @@ export function createDocsSource(opts: DocsSourceOptions) {
   }
 
   let cache: { pages: DocPage[]; at: number } | null = null;
+  // One load at a time: concurrent callers on a cold or expired cache share this promise instead
+  // of each downloading and parsing llms-full.txt. Cleared when it settles, and a failure is never
+  // written to the cache, so the next call after a failed load fetches again.
+  let inflight: Promise<DocPage[]> | null = null;
 
   return {
-    async pages(): Promise<DocPage[]> {
-      if (cache && now() - cache.at < ttlMs) return cache.pages;
-      const pages = parseLlmsFull(await getText(`${base}/llms-full.txt`));
-      cache = { pages, at: now() };
-      return pages;
+    pages(): Promise<DocPage[]> {
+      if (cache && now() - cache.at < ttlMs) return Promise.resolve(cache.pages);
+      if (inflight) return inflight;
+      const load = (async () => {
+        try {
+          const pages = parseLlmsFull(await getText(`${base}/llms-full.txt`));
+          cache = { pages, at: now() };
+          return pages;
+        } finally {
+          inflight = null;
+        }
+      })();
+      inflight = load;
+      return load;
     },
     async page(slug: string): Promise<string> {
       if (!isSafeDocSlug(slug)) throw new Error(`Unsafe doc slug: ${JSON.stringify(slug)}`);

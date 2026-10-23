@@ -98,6 +98,36 @@ describe("createDocsSource", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
+  it("shares one in-flight load between concurrent callers, and retries after a failure", async () => {
+    let release!: (r: Response) => void;
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(() => new Promise<Response>((res) => (release = res)))
+      .mockImplementationOnce(async () => new Response("nope", { status: 500 }))
+      .mockImplementationOnce(async () => new Response("nope", { status: 500 }))
+      .mockImplementation(async () => new Response(SAMPLE, { status: 200 }));
+    let t = 0;
+    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl, ttlMs: 1000, now: () => t });
+
+    const a = src.pages();
+    const b = src.pages();
+    release(new Response(SAMPLE, { status: 200 }));
+    const [pa, pb] = await Promise.all([a, b]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(pa).toHaveLength(2);
+    expect(pb).toBe(pa);
+
+    t = 1500; // expired: two concurrent callers share one failed load
+    const fails = await Promise.allSettled([src.pages(), src.pages()]);
+    expect(fails.map((r) => r.status)).toEqual(["rejected", "rejected"]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    await expect(src.pages()).rejects.toThrow(/500/); // not cached: fetches again
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(await src.pages()).toHaveLength(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
   it("page() fetches the md path", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => new Response("# Hi"));
     const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl });
