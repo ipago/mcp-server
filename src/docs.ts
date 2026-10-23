@@ -55,10 +55,9 @@ export function searchDocs(pages: DocPage[], query: string, limit = 5): DocHit[]
   return hits.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-/** A doc slug is a relative path of plain segments: no scheme, no traversal, no leading slash. */
+/** A doc slug is `dev/...` or `creators/...` made of lowercase segments: no scheme, traversal or dots. */
 export function isSafeDocSlug(slug: string): boolean {
-  if (!slug || slug.length > 200) return false;
-  return slug.split("/").every((seg) => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(seg) && !seg.includes(".."));
+  return slug.length <= 200 && /^(dev|creators)(\/[a-z0-9-]+)+$/.test(slug);
 }
 
 export type DocsSourceOptions = {
@@ -109,6 +108,7 @@ export function createDocsSource(opts: DocsSourceOptions) {
       return pages;
     },
     async page(slug: string): Promise<string> {
+      if (!isSafeDocSlug(slug)) throw new Error(`Unsafe doc slug: ${JSON.stringify(slug)}`);
       return getText(`${base}/md/${slug}`);
     },
   };

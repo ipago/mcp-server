@@ -63,9 +63,10 @@ describe("searchDocs", () => {
 describe("isSafeDocSlug", () => {
   it("accepts plain slugs", () => {
     expect(isSafeDocSlug("dev/webhooks/events")).toBe(true);
+    expect(isSafeDocSlug("creators/getting-paid/payouts")).toBe(true);
   });
   it("rejects traversal, urls and empty", () => {
-    for (const s of ["../x", "https://evil.example", "dev/../../etc", ""]) {
+    for (const s of ["../x", "https://evil.example", "dev/../../etc", "", "etc/passwd", "dev/A", "dev/a.b", "dev/", "/dev/a", "anything/else", "Dev/X_Y"]) {
       expect(isSafeDocSlug(s)).toBe(false);
     }
   });
@@ -102,6 +103,13 @@ describe("createDocsSource", () => {
     const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl });
     expect(await src.page("dev/a")).toBe("# Hi");
     expect(fetchImpl.mock.calls[0]![0]).toBe("https://docs.2pay.gg/md/dev/a");
+  });
+
+  it("page() rejects an unsafe slug without fetching", async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl });
+    await expect(src.page("../x")).rejects.toThrow(/Unsafe/);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("rejects when fetch never resolves", async () => {
