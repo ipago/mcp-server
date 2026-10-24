@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { createHttpHandler } from "./http.js";
+import { createHttpHandler, MALFORMED_AUTH_MESSAGE } from "./http.js";
 
 const servers: Server[] = [];
 
@@ -71,6 +71,45 @@ describe("http entrypoint", () => {
     expect(body.error.code).toBe(-32001);
     expect(body.error.message).toContain("sk_test_");
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["Bearer pk_test_x"],
+    ["Basic abc"],
+    ["Bearer "],
+  ])("answers 401 for a malformed Authorization header %j and never calls the API", async (auth) => {
+    const { base, fetchImpl } = await start();
+    const res = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        authorization: auth,
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { jsonrpc: string; id: null; error: { code: number; message: string } };
+    expect(body.jsonrpc).toBe("2.0");
+    expect(body.id).toBeNull();
+    expect(body.error.code).toBe(-32001);
+    expect(body.error.message).toBe(MALFORMED_AUTH_MESSAGE);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("serves a docs-only session when the Authorization header is missing", async () => {
+    const { base } = await start();
+    const res = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } },
+      }),
+    });
+    expect(res.status).toBe(200);
   });
 
   it("answers 413 for a body over 1 MB", async () => {

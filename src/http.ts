@@ -22,6 +22,9 @@ function sendJson(res: ServerResponse, status: number, body: unknown, headers: R
 
 const rpcError = (code: number, message: string) => ({ jsonrpc: "2.0", id: null, error: { code, message } });
 
+export const MALFORMED_AUTH_MESSAGE =
+  'The Authorization header must be "Bearer sk_test_..." with a 2Pay secret key. Publishable keys (pk_...) do not work here.';
+
 class BodyTooLarge extends Error {}
 
 /** Reads the request body, aborting as soon as the cap is exceeded. */
@@ -50,8 +53,15 @@ function readBody(req: IncomingMessage): Promise<string> {
 }
 
 async function handleMcp(req: IncomingMessage, res: ServerResponse, opts: HttpOptions): Promise<void> {
-  const header = req.headers.authorization;
-  const parsed = readApiKey(Array.isArray(header) ? header[0] : header);
+  const rawHeader = req.headers.authorization;
+  const header = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  const parsed = readApiKey(header);
+  // No header means a docs-only session. A header that is present but unparseable is a mistake
+  // (a typo, a pk_ key, another scheme), so say so instead of silently dropping to docs-only.
+  if (header !== undefined && !parsed) {
+    sendJson(res, 401, rpcError(-32001, MALFORMED_AUTH_MESSAGE));
+    return;
+  }
   if (parsed) {
     const verdict = keyAllowed(parsed.mode, opts.allowLive);
     if (!verdict.ok) {
