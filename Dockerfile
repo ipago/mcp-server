@@ -18,11 +18,16 @@ RUN pnpm install --filter @2pay/mcp --prod --frozen-lockfile --config.confirmMod
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# Owned by root and world-readable (the build stage's default), so the unprivileged runtime
+# user can read the app but cannot modify it.
 COPY --from=build /repo/node_modules /repo/node_modules
 COPY --from=build /repo/apps/mcp/node_modules /repo/apps/mcp/node_modules
 COPY --from=build /repo/apps/mcp/dist /repo/apps/mcp/dist
 COPY --from=build /repo/apps/mcp/package.json /repo/apps/mcp/package.json
 WORKDIR /repo/apps/mcp
+# node:22-alpine ships a `node` user (uid 1000). The server only reads files and listens on an
+# unprivileged port, so it needs nothing from root.
+USER node
 EXPOSE 3005
 # Use 127.0.0.1, not localhost: busybox wget resolves "localhost" to ::1 first and the server
 # listens on IPv4 only.
