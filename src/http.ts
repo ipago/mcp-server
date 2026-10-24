@@ -81,7 +81,7 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse, opts: HttpOp
   const api = parsed
     ? new TwoPay({ baseUrl: opts.apiUrl, apiKey: parsed.key, ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}) })
     : null;
-  const server = buildMcpServer({ docs: opts.docs, api, mode: parsed?.mode ?? null, allowLive: opts.allowLive });
+  const server = buildMcpServer({ docs: opts.docs, api, mode: parsed?.mode ?? null });
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   res.on("close", () => {
     void transport.close();

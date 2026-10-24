@@ -9,7 +9,6 @@ export type McpContext = {
   docs: ReturnType<typeof createDocsSource>;
   api: TwoPay | null;
   mode: KeyMode | null;
-  allowLive: boolean;
 };
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };

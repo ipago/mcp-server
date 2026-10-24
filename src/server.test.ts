@@ -33,7 +33,6 @@ function fakeApi() {
 async function connect(opts: {
   api?: ReturnType<typeof fakeApi> | null;
   mode?: KeyMode | null;
-  allowLive?: boolean;
   docs?: ReturnType<typeof fakeDocs>;
 }) {
   const docs = opts.docs ?? fakeDocs();
@@ -42,7 +41,6 @@ async function connect(opts: {
     docs: docs as never,
     api: api as unknown as TwoPay | null,
     mode: opts.mode ?? null,
-    allowLive: opts.allowLive ?? false,
   });
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "t", version: "0" });
@@ -73,7 +71,7 @@ describe("buildMcpServer", () => {
   });
 
   it("omits create_refund in live mode", async () => {
-    const { client } = await connect({ api: fakeApi(), mode: "live", allowLive: true });
+    const { client } = await connect({ api: fakeApi(), mode: "live" });
     const names = (await client.listTools()).tools.map((t) => t.name);
     expect(names).toContain("get_order");
     expect(names).not.toContain("create_refund");
