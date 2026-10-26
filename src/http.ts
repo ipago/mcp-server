@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { TwoPay } from "@2pay/sdk";
+import { IPago } from "@ipago/sdk";
 import type { createDocsSource } from "./docs.js";
 import { keyAllowed, readApiKey } from "./keys.js";
 import { buildMcpServer } from "./server.js";
@@ -23,7 +23,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown, headers: R
 const rpcError = (code: number, message: string) => ({ jsonrpc: "2.0", id: null, error: { code, message } });
 
 export const MALFORMED_AUTH_MESSAGE =
-  'The Authorization header must be "Bearer sk_test_..." with a 2Pay secret key. Publishable keys (pk_...) do not work here.';
+  'The Authorization header must be "Bearer sk_test_..." with an iPago secret key. Publishable keys (pk_...) do not work here.';
 
 class BodyTooLarge extends Error {}
 
@@ -89,7 +89,7 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse, opts: HttpOp
   }
 
   const api = parsed
-    ? new TwoPay({ baseUrl: opts.apiUrl, apiKey: parsed.key, ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}) })
+    ? new IPago({ baseUrl: opts.apiUrl, apiKey: parsed.key, ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}) })
     : null;
   const server = buildMcpServer({ docs: opts.docs, api, mode: parsed?.mode ?? null });
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });

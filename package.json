@@ -1,5 +1,5 @@
 {
-  "name": "@2pay/mcp",
+  "name": "@ipago/mcp",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "vitest": "^2.0.0"
   },
   "dependencies": {
-    "@2pay/sdk": "workspace:*",
+    "@ipago/sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "zod": "4.4.3"
   }

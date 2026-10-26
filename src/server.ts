@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { TwoPayError, type TwoPay } from "@2pay/sdk";
+import { IPagoError, type IPago } from "@ipago/sdk";
 import { z } from "zod";
 import { isSafeDocSlug, searchDocs, type createDocsSource } from "./docs.js";
 import type { KeyMode } from "./keys.js";
 
 export type McpContext = {
   docs: ReturnType<typeof createDocsSource>;
-  api: TwoPay | null;
+  api: IPago | null;
   mode: KeyMode | null;
 };
 
@@ -20,10 +20,10 @@ const ok = (value: unknown): ToolResult => ({
 const fail = (text: string): ToolResult => ({ content: [{ type: "text", text }], isError: true });
 
 function describeError(err: unknown): string {
-  if (err instanceof TwoPayError) {
+  if (err instanceof IPagoError) {
     const e = (err.body as { error?: { code?: unknown; message?: unknown } } | null | undefined)?.error;
     if (e && typeof e.code === "string" && typeof e.message === "string") {
-      return `2Pay API error ${err.status} (${e.code}): ${e.message}`;
+      return `iPago API error ${err.status} (${e.code}): ${e.message}`;
     }
     return err.message;
   }
@@ -42,15 +42,15 @@ const listShape = {
 };
 
 const SLUG_HELP =
-  "the path of a search_docs result URL after the domain, e.g. https://docs.2pay.gg/dev/checkout/overview gives dev/checkout/overview";
+  "the path of a search_docs result URL after the domain, e.g. https://docs.ipago.io/dev/checkout/overview gives dev/checkout/overview";
 
 export function buildMcpServer(ctx: McpContext): McpServer {
-  const server = new McpServer({ name: "2pay", version: "0.1.0" });
+  const server = new McpServer({ name: "iPago", version: "0.1.0" });
 
   server.registerTool(
     "search_docs",
     {
-      description: "Searches the 2Pay documentation and returns matching pages with url, title and excerpt.",
+      description: "Searches the iPago documentation and returns matching pages with url, title and excerpt.",
       inputSchema: { query: z.string().min(1).describe("Search terms") },
     },
     async ({ query }) => {
@@ -65,7 +65,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
   server.registerTool(
     "get_doc_page",
     {
-      description: `Returns the full markdown of one 2Pay documentation page. The slug is ${SLUG_HELP}.`,
+      description: `Returns the full markdown of one iPago documentation page. The slug is ${SLUG_HELP}.`,
       inputSchema: { slug: z.string().describe(`Doc page slug: ${SLUG_HELP}`) },
     },
     async ({ slug }) => {

@@ -8,13 +8,13 @@ WORKDIR /repo
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/mcp/package.json apps/mcp/package.json
-# @2pay/sdk is a workspace dependency that exports TypeScript source; tsup bundles it.
+# @ipago/sdk is a workspace dependency that exports TypeScript source; tsup bundles it.
 COPY packages/sdk/package.json packages/sdk/package.json
-RUN pnpm install --filter @2pay/mcp... --frozen-lockfile
+RUN pnpm install --filter @ipago/mcp... --frozen-lockfile
 COPY packages/sdk packages/sdk
 COPY apps/mcp apps/mcp
-RUN pnpm --filter @2pay/mcp build
-RUN pnpm install --filter @2pay/mcp --prod --frozen-lockfile --config.confirmModulesPurge=false
+RUN pnpm --filter @ipago/mcp build
+RUN pnpm install --filter @ipago/mcp --prod --frozen-lockfile --config.confirmModulesPurge=false
 
 FROM base AS runtime
 ENV NODE_ENV=production

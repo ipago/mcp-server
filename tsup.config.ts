@@ -5,7 +5,7 @@ export default defineConfig({
   format: ["esm"],
   target: "node22",
   platform: "node",
-  // @2pay/sdk is private and exports TypeScript source, so it must be bundled.
-  noExternal: ["@2pay/sdk"],
+  // @ipago/sdk is private and exports TypeScript source, so it must be bundled.
+  noExternal: ["@ipago/sdk"],
   clean: true,
 });

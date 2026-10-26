@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDocsSource, isSafeDocSlug, parseLlmsFull, searchDocs } from "./docs.js";
 
-const SAMPLE = `# 2Pay Documentation (full text)
+const SAMPLE = `# iPago Documentation (full text)
 
 > intro
 
@@ -9,7 +9,7 @@ const SAMPLE = `# 2Pay Documentation (full text)
 
 ---
 
-Source: https://docs.2pay.gg/dev/a
+Source: https://docs.ipago.io/dev/a
 
 # A
 
@@ -17,7 +17,7 @@ Alpha body about webhook delivery.
 
 ---
 
-Source: https://docs.2pay.gg/dev/b
+Source: https://docs.ipago.io/dev/b
 
 # B
 
@@ -28,9 +28,9 @@ describe("parseLlmsFull", () => {
   it("parses pages with url, title and body", () => {
     const pages = parseLlmsFull(SAMPLE);
     expect(pages).toHaveLength(2);
-    expect(pages[0]).toMatchObject({ url: "https://docs.2pay.gg/dev/a", title: "A" });
+    expect(pages[0]).toMatchObject({ url: "https://docs.ipago.io/dev/a", title: "A" });
     expect(pages[0]!.body).toContain("Alpha body");
-    expect(pages[1]).toMatchObject({ url: "https://docs.2pay.gg/dev/b", title: "B" });
+    expect(pages[1]).toMatchObject({ url: "https://docs.ipago.io/dev/b", title: "B" });
   });
 });
 
@@ -82,12 +82,12 @@ describe("createDocsSource", () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response("nope", { status: 500 }))
       .mockImplementation(async () => new Response(SAMPLE, { status: 200 }));
-    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl, ttlMs: 1000, now: () => t });
+    const src = createDocsSource({ docsUrl: "https://docs.ipago.io", fetchImpl, ttlMs: 1000, now: () => t });
 
     await expect(src.pages()).rejects.toThrow();
     expect((await src.pages()).length).toBe(2);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
-    expect(fetchImpl.mock.calls[0]![0]).toBe("https://docs.2pay.gg/llms-full.txt");
+    expect(fetchImpl.mock.calls[0]![0]).toBe("https://docs.ipago.io/llms-full.txt");
 
     t = 500;
     await src.pages();
@@ -107,7 +107,7 @@ describe("createDocsSource", () => {
       .mockImplementationOnce(async () => new Response("nope", { status: 500 }))
       .mockImplementation(async () => new Response(SAMPLE, { status: 200 }));
     let t = 0;
-    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl, ttlMs: 1000, now: () => t });
+    const src = createDocsSource({ docsUrl: "https://docs.ipago.io", fetchImpl, ttlMs: 1000, now: () => t });
 
     const a = src.pages();
     const b = src.pages();
@@ -130,14 +130,14 @@ describe("createDocsSource", () => {
 
   it("page() fetches the md path", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => new Response("# Hi"));
-    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl });
+    const src = createDocsSource({ docsUrl: "https://docs.ipago.io", fetchImpl });
     expect(await src.page("dev/a")).toBe("# Hi");
-    expect(fetchImpl.mock.calls[0]![0]).toBe("https://docs.2pay.gg/md/dev/a");
+    expect(fetchImpl.mock.calls[0]![0]).toBe("https://docs.ipago.io/md/dev/a");
   });
 
   it("page() rejects an unsafe slug without fetching", async () => {
     const fetchImpl = vi.fn<typeof fetch>();
-    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl });
+    const src = createDocsSource({ docsUrl: "https://docs.ipago.io", fetchImpl });
     await expect(src.page("../x")).rejects.toThrow(/Unsafe/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -150,7 +150,7 @@ describe("createDocsSource", () => {
           init?.signal?.addEventListener("abort", () => rej(new Error("aborted")));
         }),
     );
-    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl });
+    const src = createDocsSource({ docsUrl: "https://docs.ipago.io", fetchImpl });
     const p = expect(src.pages()).rejects.toThrow();
     await vi.advanceTimersByTimeAsync(10_001);
     await p;
@@ -159,7 +159,7 @@ describe("createDocsSource", () => {
   it("honors an injected timeoutMs", async () => {
     vi.useFakeTimers();
     const fetchImpl = vi.fn<typeof fetch>(() => new Promise<Response>(() => {}));
-    const src = createDocsSource({ docsUrl: "https://docs.2pay.gg", fetchImpl, timeoutMs: 50 });
+    const src = createDocsSource({ docsUrl: "https://docs.ipago.io", fetchImpl, timeoutMs: 50 });
     const p = expect(src.page("dev/a")).rejects.toThrow(/timed out/);
     await vi.advanceTimersByTimeAsync(51);
     await p;

@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { TwoPayError, type TwoPay } from "@2pay/sdk";
+import { IPagoError, type IPago } from "@ipago/sdk";
 import { buildMcpServer } from "./server.js";
 import type { KeyMode } from "./keys.js";
 
 function fakeDocs() {
   return {
     pages: vi.fn(async () => [
-      { url: "https://docs.2pay.gg/dev/checkout/overview", title: "Checkout", body: "Create a checkout session." },
+      { url: "https://docs.ipago.io/dev/checkout/overview", title: "Checkout", body: "Create a checkout session." },
     ]),
     page: vi.fn(async (slug: string) => `# page ${slug}`),
   };
@@ -39,7 +39,7 @@ async function connect(opts: {
   const api = opts.api === undefined ? null : opts.api;
   const server = buildMcpServer({
     docs: docs as never,
-    api: api as unknown as TwoPay | null,
+    api: api as unknown as IPago | null,
     mode: opts.mode ?? null,
   });
   const [a, b] = InMemoryTransport.createLinkedPair();
@@ -84,10 +84,10 @@ describe("buildMcpServer", () => {
     expect(text(r)).toBe(JSON.stringify({ id: "ord_1", status: "paid" }, null, 2));
   });
 
-  it("turns TwoPayError into an error result and keeps serving", async () => {
+  it("turns IPagoError into an error result and keeps serving", async () => {
     const api = fakeApi();
     api.orders.retrieve.mockRejectedValueOnce(
-      new TwoPayError(403, { error: { type: "permission_error", code: "insufficient_scope", message: "Key lacks orders:read" } }),
+      new IPagoError(403, { error: { type: "permission_error", code: "insufficient_scope", message: "Key lacks orders:read" } }),
     );
     const { client } = await connect({ api, mode: "test" });
     const bad = await client.callTool({ name: "get_order", arguments: { id: "ord_1" } });
@@ -119,7 +119,7 @@ describe("buildMcpServer", () => {
   it("searches docs", async () => {
     const { client } = await connect({});
     const r = await client.callTool({ name: "search_docs", arguments: { query: "checkout" } });
-    expect(text(r)).toContain("https://docs.2pay.gg/dev/checkout/overview");
+    expect(text(r)).toContain("https://docs.ipago.io/dev/checkout/overview");
   });
 
   it("sends an Idempotency-Key with create_checkout", async () => {
