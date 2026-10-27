@@ -3,7 +3,7 @@ import { createDocsSource } from "./docs.js";
 import { createHttpHandler } from "./http.js";
 
 const port = Number(process.env.PORT ?? 3005);
-const apiUrl = process.env.IPAGO_API_URL ?? "http://api:3003";
+const apiUrl = process.env.IPAGO_API_URL ?? "https://api.ipago.io";
 const docsUrl = process.env.DOCS_URL ?? "https://docs.ipago.io";
 const allowLive = process.env.MCP_ALLOW_LIVE_KEYS === "true";
 

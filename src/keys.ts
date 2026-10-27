@@ -1,9 +1,9 @@
 export type KeyMode = "test" | "live";
 
-// Same scheme parsing as the API (apps/api/src/http/auth.ts): case-insensitive scheme,
-// one or more whitespace characters, surrounding whitespace trimmed.
+// Case-insensitive scheme, one or more whitespace characters, surrounding whitespace trimmed.
 const BEARER_PATTERN = /^Bearer\s+(.+)$/i;
-// Keys are `sk_<mode>_<base64url>` (apps/api/src/kernel/secret.ts). The prefix is case-sensitive.
+// Secret (`sk_`) and restricted (`rk_`) keys are `prefix_<test|live>_<base64url>`.
+// The prefix and the mode are case-sensitive. Publishable (`pk_`) keys are rejected.
 const KEY_PATTERN = /^(?:sk|rk)_(test|live)_[A-Za-z0-9_-]+$/;
 
 const LIVE_REFUSAL =

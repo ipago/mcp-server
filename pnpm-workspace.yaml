@@ -1,0 +1,4 @@
+# pnpm 10 skips dependency build scripts unless listed here.
+# esbuild's postinstall fetches the binary that tsup runs.
+allowBuilds:
+  esbuild: true
