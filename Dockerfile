@@ -1,30 +1,28 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS base
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable
-WORKDIR /repo
+WORKDIR /app
 
 FROM base AS build
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/mcp/package.json apps/mcp/package.json
-# @ipago/sdk is a workspace dependency that exports TypeScript source; tsup bundles it.
-COPY packages/sdk/package.json packages/sdk/package.json
-RUN pnpm install --filter @ipago/mcp... --frozen-lockfile
-COPY packages/sdk packages/sdk
-COPY apps/mcp apps/mcp
-RUN pnpm --filter @ipago/mcp build
-RUN pnpm install --filter @ipago/mcp --prod --frozen-lockfile --config.confirmModulesPurge=false
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+COPY scripts/fetch-sdk.mjs scripts/fetch-sdk.mjs
+# preResolution downloads the pinned @ipago/sdk tree before linking it.
+RUN pnpm install --frozen-lockfile
+COPY tsconfig.json tsup.config.ts ./
+COPY src src
+RUN pnpm build
+# The client is bundled into dist. Drop the link so the runtime image does not
+# point at the fetched SDK tree.
+RUN pnpm prune --prod && rm -rf node_modules/@ipago
 
 FROM base AS runtime
 ENV NODE_ENV=production
 # Owned by root and world-readable (the build stage's default), so the unprivileged runtime
 # user can read the app but cannot modify it.
-COPY --from=build /repo/node_modules /repo/node_modules
-COPY --from=build /repo/apps/mcp/node_modules /repo/apps/mcp/node_modules
-COPY --from=build /repo/apps/mcp/dist /repo/apps/mcp/dist
-COPY --from=build /repo/apps/mcp/package.json /repo/apps/mcp/package.json
-WORKDIR /repo/apps/mcp
+COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/dist /app/dist
+COPY --from=build /app/package.json /app/package.json
+WORKDIR /app
 # node:22-alpine ships a `node` user (uid 1000). The server only reads files and listens on an
 # unprivileged port, so it needs nothing from root.
 USER node

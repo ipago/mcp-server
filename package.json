@@ -3,22 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsup",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
+    "fetch-sdk": "node scripts/fetch-sdk.mjs",
+    "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.0",
     "@types/node": "^22.0.0",
+    "eslint": "^10.0.0",
     "tsup": "^8.0.0",
     "tsx": "4.19.2",
     "typescript": "5.7.3",
+    "typescript-eslint": "^8.33.0",
     "vitest": "^2.0.0"
   },
   "dependencies": {
-    "@ipago/sdk": "workspace:*",
+    "@ipago/sdk": "link:./third_party/ipago-sdk",
     "@modelcontextprotocol/sdk": "1.32.2",
     "zod": "4.4.3"
   }

@@ -1,0 +1,10 @@
+node_modules/
+third_party/
+dist/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+coverage/
+.pnpm-store/
+*.log
