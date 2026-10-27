@@ -4,14 +4,16 @@ WORKDIR /app
 
 FROM base AS build
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
-# The SDK is installed from a git pin. The runtime stage does not need git.
-RUN apk add --no-cache git
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+COPY scripts/fetch-sdk.mjs scripts/fetch-sdk.mjs
+# preResolution downloads the pinned @ipago/sdk tree before linking it.
 RUN pnpm install --frozen-lockfile
 COPY tsconfig.json tsup.config.ts ./
 COPY src src
 RUN pnpm build
-RUN pnpm prune --prod
+# The client is bundled into dist. Drop the link so the runtime image does not
+# point at the fetched SDK tree.
+RUN pnpm prune --prod && rm -rf node_modules/@ipago
 
 FROM base AS runtime
 ENV NODE_ENV=production

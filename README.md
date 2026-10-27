@@ -11,11 +11,9 @@ The server does not import API internals. Every API call goes through the `@ipag
 
 ## `@ipago/sdk`
 
-`@ipago/sdk` is not published to npm yet. This repo depends on a pinned commit of the public [`ipago/ipago-js`](https://github.com/ipago/ipago-js) repository:
+`@ipago/sdk` is not on npm yet. `pnpm install` downloads commit `86a0c5185a8ea6955852c7e3206a196b18c65007` of the public [`ipago/ipago-js`](https://github.com/ipago/ipago-js) repository (`packages/sdk`) into `third_party/ipago-sdk` and links it. The pin lives in `scripts/fetch-sdk.mjs`.
 
-`github:ipago/ipago-js#86a0c5185a8ea6955852c7e3206a196b18c65007&path:/packages/sdk`
-
-That package currently exports TypeScript source, so the production build bundles it. When a semver release is published, replace the git pin with that version.
+A plain git dependency does not work: the package's `files` list is `dist`, and that build output is not in the repository, so the installer drops the TypeScript source. The fetched package still exports that source, and the production build bundles it. When a semver release is published, replace the link with that version and delete the fetch.
 
 ## Configure
 
@@ -41,6 +39,8 @@ pnpm build
 pnpm start
 pnpm dev
 ```
+
+`pnpm install` needs network access the first time, so it can download the pinned SDK. `pnpm fetch-sdk` runs that download on its own.
 
 `pnpm build` writes `dist/index.js`. `pnpm start` runs that file. `GET /healthz` returns `ok`.
 

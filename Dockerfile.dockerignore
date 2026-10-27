@@ -1,5 +1,6 @@
 node_modules
 dist
+third_party
 .env
 .git
 .github

@@ -1,4 +1,5 @@
 node_modules/
+third_party/
 dist/
 .env
 .env.*
