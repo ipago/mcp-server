@@ -53,4 +53,4 @@ docker build -t mcp-server .
 docker run --rm -p 3005:3005 -e IPAGO_API_URL=https://api.ipago.io mcp-server
 ```
 
-GitHub Actions pushes `:<full sha>` and `:<short sha>` on pull requests and on `main`, and `:latest` only on `main`.
+GitHub Actions pushes `:<full sha>` and `:<short sha>` on pull requests and on `main` and `dev`. `:latest` is only on `main`. A `dev` push does not publish `:latest` or a moving `:dev` tag.

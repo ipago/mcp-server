@@ -3,7 +3,7 @@ name: images
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
   contents: read
@@ -30,6 +30,8 @@ jobs:
           image=ghcr.io/ipago/mcp-server
           tags="${image}:${GITHUB_SHA}"
           tags="${tags},${image}:${GITHUB_SHA::7}"
+          # :latest is reserved for main. dev publishes only the SHA tags
+          # above; deploys pin the full SHA, so there is no moving :dev tag.
           if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             tags="${tags},${image}:latest"
           fi
